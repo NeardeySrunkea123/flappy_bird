@@ -28,6 +28,10 @@ class _MainScreenState extends State<MainScreen> {
   List<List<double>> barrierHeight = [
     [0.6, 0.4],
     [0.4, 0.6],
+    [0.3, 0.7],
+    [0.7, 0.3],
+    [0.2, 0.8],
+    [0.8, 0.2],
    
   ];
 
@@ -35,71 +39,74 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       time = 0;
       initailPos = birdY;
-      velocity = -2; // Apply an upward velocity on jump
+      velocity = -2;
     });
   }
 
   void startedGame() {
-    gameHasStated = true;
+  gameHasStated = true;
 
-    Timer.periodic(const Duration(milliseconds: 16), (timer) {
-      height = 0.5 * gravity * time * time + velocity * time;
+  Timer.periodic(const Duration(milliseconds: 16), (timer) {
+    setState(() {
+      velocity += gravity * 0.016;
+      birdY += velocity * 0.016; 
 
-      setState(() {
-        birdY = initailPos + height;
-        if (birdY > 1 || birdY < -1) {
-          birdY = birdY > 1 ? 1 : -1;
-        }
-      });
+     if (birdY - birdHeight / 2 < -1 || birdY + birdHeight / 2 > 1) {
+  birdY = birdY < -1 ? -1 + birdHeight / 2 : 1 - birdHeight / 2;
+}
 
-
-      if (birdIsDead()) {
-        timer.cancel();
-        gameHasStated = false;
-        _showDialog();
-      }
-      moveMap();
-
-      time += 0.01; 
     });
-  }
+
+    if (birdIsDead()) {
+      timer.cancel();
+      gameHasStated = false;
+      _showDialog();
+    }
+
+    moveMap();
+  });
+}
+
 
   bool birdIsDead() {
-    if (birdY < -1 || birdY > 1) {
-      return true;
-    }
-    for (int i = 0; i < barrierX.length; i++) {
-     if (barrierX[i] < birdWidth &&
-    barrierX[i] + barrierWidth > -birdWidth &&
-    (birdY <= -1 + barrierHeight[i][0] ||
-      birdY + birdHeight >= 1 - barrierHeight[i][1])) {
+ if (birdY - birdHeight < -1 || birdY + birdHeight > 1) {
+    return true;
+  }    for (int i = 0; i < barrierX.length; i++) {
+    if (barrierX[i] < 0.05 && 
+    barrierX[i] + barrierWidth > -0.05 && 
+    (birdY - birdHeight / 2 <= -1 + barrierHeight[i][0] || 
+     birdY + birdHeight / 2 >= 1 - barrierHeight[i][1])) {
   return true;
-      }
+}
+
 
     }
     return false;
   }
 
   void resetGame() {
-    Navigator.pop(context);
-    setState(() {
-      birdY = 0;
-      gameHasStated = false;
-      time = 0;
-      initailPos = birdY;
-    });
-  }
+  Navigator.pop(context); 
+  setState(() {
+    birdY = 0;              
+    initailPos = 0;          
+    time = 0;                 
+    velocity = 1.5;          
+    gameHasStated = false;   
+    barrierX = [2, 2 + 1.5];  
+  });
+}
+
 
   void moveMap() {
     for (int i = 0; i < barrierX.length; i++) {
-      setState(() {
-        barrierX[i] -= 0.005;
-      });
-
-      if (barrierX[1] < -1.5) {
-        barrierX[i] += 3;
-      }
+  setState(() {
+    barrierX[i] -= 0.005; 
+    if (barrierX[i] < -1.5) {
+      barrierX[i] += 3;
     }
+  });
+}
+
   }
 
   void _showDialog() {
