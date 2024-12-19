@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bird_game/barrier.dart';
 import 'package:bird_game/flappy_bird.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,6 +21,28 @@ class _MainScreenState extends State<MainScreen> {
   double velocity = 1.5;
   double birdWidth = 0.1;
   double birdHeight = 0.1;
+  int score = 0;
+  int highScore = 0;
+  List<bool> scored = [false, false]; // One boolean for each barrier
+
+
+  Future<void> saveHighScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('highScore', highScore);
+  }
+
+  Future<void> loadHighScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      highScore = prefs.getInt('highScore') ?? 0;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadHighScore();
+  }
 
   bool gameHasStated = false;
 
@@ -32,7 +55,6 @@ class _MainScreenState extends State<MainScreen> {
     [0.7, 0.3],
     [0.2, 0.8],
     [0.8, 0.2],
-   
   ];
 
   void jump() {
@@ -44,72 +66,78 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void startedGame() {
-  gameHasStated = true;
+    gameHasStated = true;
 
-  Timer.periodic(const Duration(milliseconds: 16), (timer) {
-    setState(() {
-      velocity += gravity * 0.016;
-      birdY += velocity * 0.016; 
+    Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      setState(() {
+        velocity += gravity * 0.016;
+        birdY += velocity * 0.016;
 
-     if (birdY - birdHeight / 2 < -1 || birdY + birdHeight / 2 > 1) {
-  birdY = birdY < -1 ? -1 + birdHeight / 2 : 1 - birdHeight / 2;
-}
+        if (birdY - birdHeight / 2 < -1 || birdY + birdHeight / 2 > 1) {
+          birdY = birdY < -1 ? -1 + birdHeight / 2 : 1 - birdHeight / 2;
+        }
+      });
 
+      if (birdIsDead()) {
+        timer.cancel();
+        gameHasStated = false;
+        _showDialog();
+      }
+
+      moveMap();
     });
-
-    if (birdIsDead()) {
-      timer.cancel();
-      gameHasStated = false;
-      _showDialog();
-    }
-
-    moveMap();
-  });
-}
-
+  }
 
   bool birdIsDead() {
- if (birdY - birdHeight < -1 || birdY + birdHeight > 1) {
-    return true;
-  }    for (int i = 0; i < barrierX.length; i++) {
-    if (barrierX[i] < 0.05 && 
-    barrierX[i] + barrierWidth > -0.05 && 
-    (birdY - birdHeight / 2 <= -1 + barrierHeight[i][0] || 
-     birdY + birdHeight / 2 >= 1 - barrierHeight[i][1])) {
-  return true;
-}
-
-
+    if (birdY - birdHeight < -1 || birdY + birdHeight > 1) {
+      return true;
+    }
+    for (int i = 0; i < barrierX.length; i++) {
+      if (barrierX[i] < 0.05 &&
+          barrierX[i] + barrierWidth > -0.05 &&
+          (birdY - birdHeight / 2 <= -1 + barrierHeight[i][0] ||
+              birdY + birdHeight / 2 >= 1 - barrierHeight[i][1])) {
+        return true;
+      }
     }
     return false;
   }
 
   void resetGame() {
-  Navigator.pop(context); 
-  setState(() {
-    birdY = 0;              
-    initailPos = 0;          
-    time = 0;                 
-    velocity = 1.5;          
-    gameHasStated = false;   
-    barrierX = [2, 2 + 1.5];  
-  });
-}
-
-
-  void moveMap() {
-    for (int i = 0; i < barrierX.length; i++) {
-  setState(() {
-    barrierX[i] -= 0.005; 
-    if (barrierX[i] < -1.5) {
-      barrierX[i] += 3;
-    }
-  });
-}
-
+    Navigator.pop(context);
+    setState(() {
+      birdY = 0;
+      gameHasStated = false;
+      time = 0;
+      initailPos = birdY;
+      score = 0; // Reset score
+      barrierX = [2, 2 + 1.5]; // Reset barriers
+    });
   }
 
+  void moveMap() {
+  for (int i = 0; i < barrierX.length; i++) {
+    setState(() {
+      barrierX[i] -= 0.005;
+
+      if (barrierX[i] + barrierWidth < -birdWidth / 2 && !scored[i]) {
+        score += 1;
+        scored[i] = true; 
+      }
+      if (barrierX[i] < -1.5) {
+        barrierX[i] += 3;
+        scored[i] = false; 
+      }
+    });
+  }
+}
+
+
   void _showDialog() {
+    if (score > highScore) {
+      highScore = score;
+      saveHighScore();
+    }
     showDialog(
         context: context,
         barrierDismissible: false,
@@ -120,6 +148,17 @@ class _MainScreenState extends State<MainScreen> {
               child: Text(
                 "GAME OVER",
                 style: TextStyle(color: Colors.white, fontSize: 30),
+              ),
+            ),
+            content: SizedBox(
+              width: 50,
+              height: 70,
+              child: Center(
+                child: Text(
+                  'Your Score: $score\nHigh Score: $highScore',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
               ),
             ),
             actions: [
@@ -151,7 +190,7 @@ class _MainScreenState extends State<MainScreen> {
               flex: 3,
               child: Container(
                 color: Colors.blue,
-                child: Center(
+                child: Center(  
                   child: Stack(
                     children: [
                       FlappyBird(
@@ -163,31 +202,32 @@ class _MainScreenState extends State<MainScreen> {
                         barrierX: barrierX[0],
                         barrierWidth: barrierWidth,
                         barrierHeight: barrierHeight[0][0],
-                        isThisBottomBarrier : false,
+                        isThisBottomBarrier: false,
                       ),
                       Barrier(
                         barrierX: barrierX[0],
                         barrierWidth: barrierWidth,
                         barrierHeight: barrierHeight[0][1],
-                        isThisBottomBarrier : true,
+                        isThisBottomBarrier: true,
                       ),
                       Barrier(
                         barrierX: barrierX[1],
                         barrierWidth: barrierWidth,
                         barrierHeight: barrierHeight[1][0],
-                        isThisBottomBarrier : false,
+                        isThisBottomBarrier: false,
                       ),
                       Barrier(
                         barrierX: barrierX[1],
                         barrierWidth: barrierWidth,
                         barrierHeight: barrierHeight[1][1],
-                        isThisBottomBarrier : true,
+                        isThisBottomBarrier: true,
                       ),
                       Container(
-                          alignment: const Alignment(0, -0.5),
+                          alignment: const Alignment(0, -0.8),
                           child: Text(
-                            gameHasStated ? '' : 'TAP TO PLAY',
-                            style: const TextStyle(color: Colors.white, fontSize: 30),
+                            gameHasStated ? '$score' : 'TAP TO PLAY',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 30),
                           ))
                     ],
                   ),
