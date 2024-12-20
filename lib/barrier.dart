@@ -22,23 +22,16 @@ class Barrier extends StatelessWidget {
         isThisBottomBarrier ? 1 : -1,
       ),
       child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)], // Gradient colors
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          borderRadius: BorderRadius.circular(10), // Rounded corners
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3), // Shadow color
-              blurRadius: 5,
-              offset: const Offset(2, 2), // Shadow offset
-            ),
-          ],
-        ),
         width: MediaQuery.of(context).size.width * barrierWidth / 2,
         height: MediaQuery.of(context).size.height * barrierHeight / 2,
+        decoration: BoxDecoration(
+          color: Colors.green, // Solid green color for barrier
+          border: Border.all(
+            width: 3,
+            color: Colors.black, // Black border
+          ),
+          borderRadius: BorderRadius.circular(5), // Slightly rounded corners
+        ),
       ),
     );
   }
