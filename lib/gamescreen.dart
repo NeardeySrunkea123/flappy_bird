@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for SystemNavigator.pop()
 import 'flappy_bird.dart'; // Assuming the FlappyBird widget is in flappy_bird.dart
@@ -136,7 +135,7 @@ class _GameScreenState extends State<GameScreen>
     for (int i = 0; i < barrierX.length; i++) {
       setState(() {
         barrierX[i] -=
-            0.02; // Adjust the speed of the barriers (faster/slower movement)
+            0.1; // Adjust the speed of the barriers (faster/slower movement)
       });
 
       if (barrierX[i] < -1.5) {
