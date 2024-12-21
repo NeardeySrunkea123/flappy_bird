@@ -83,7 +83,7 @@ class _GameScreenState extends State<GameScreen>
     setState(() {
       time = 0; // Reset the time to zero when the bird jumps
       initialPos = birdY; // Keep the initial position of the bird at jump
-      velocity = -1.8; // Apply a stronger upward velocity for the jump
+      velocity = -1; // Apply a stronger upward velocity for the jump
     });
   }
 
