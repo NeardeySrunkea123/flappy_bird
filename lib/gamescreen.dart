@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for SystemNavigator.pop()
 import 'flappy_bird.dart'; // Assuming the FlappyBird widget is in flappy_bird.dart
 import 'barrier.dart'; // Assuming the Barrier widget is in barrier.dart
+import 'dart:math'; // Import for Random class
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -55,8 +56,8 @@ class _GameScreenState extends State<GameScreen>
         birdY = initialPos + height;
 
         // Ensure the bird stops exactly at the bottom and doesn't go below
-        if (birdY + birdHeight / 2 >= 1.055) {
-          birdY = 1.055 - birdHeight / 2; // Stop at the exact ground level
+        if (birdY + birdHeight / 2 >= 1.1) {
+          birdY = 1.1 - birdHeight / 2; // Stop at the exact ground level
           time = 0; // Reset time to stop further downward motion
         }
       });
@@ -93,23 +94,23 @@ class _GameScreenState extends State<GameScreen>
 
   bool birdIsDead() {
     // Check if the bird hits the ground
-    if (birdY + birdHeight / 2 >= 1.055) {
+    if (birdY + birdHeight / 2 >= 1.1) {
       birdY =
-          1.055 - birdHeight / 2; // Ensure the bird stops exactly at the bottom
+          1.1 - birdHeight / 2; // Ensure the bird stops exactly at the bottom
       return true;
     }
 
     const double tolerance =
-        0.02; // Define a small tolerance value for collision check
+        0.01; // Define a small tolerance value for collision check
 
     // Check for barrier collisions with tolerance
     for (int i = 0; i < barrierX.length; i++) {
-      if (barrierX[i] < birdWidth / 0.8 &&
+      if (barrierX[i] < birdWidth / 1 &&
           barrierX[i] + barrierWidth > -birdWidth / 1) {
         bool hitsTopBarrier =
-            birdY - birdHeight / 2 <= -0.859 + barrierHeight[i][0] + tolerance;
+            birdY - birdHeight / 2 <= -0.89 + barrierHeight[i][0] + tolerance;
         bool hitsBottomBarrier =
-            birdY + birdHeight / 2 >= 0.859- barrierHeight[i][1] - tolerance;
+            birdY + birdHeight / 2 >= 0.89 - barrierHeight[i][1] - tolerance;
 
         if (hitsTopBarrier || hitsBottomBarrier) {
           return true;
@@ -131,16 +132,31 @@ class _GameScreenState extends State<GameScreen>
     });
   }
 
+  final Random _random = Random(); // Initialize a random number generator
+
   void moveMap() {
+    double speed = 0.01 + (score * 0.001); // Speed increases with the score
+
     for (int i = 0; i < barrierX.length; i++) {
-      setState(() {
-        barrierX[i] -=
-            0.1; // Adjust the speed of the barriers (faster/slower movement)
+         setState(() {
+        barrierX[i] -= speed; // Move the barrier with increased speed
       });
+      
+
+      // Check if the bird passes the barrier
+      if (barrierX[i] < -birdWidth && barrierX[i] + speed >= -birdWidth) {
+        setState(() {
+          score++; // Increase score when bird passes through a barrier
+        });
+      }
 
       if (barrierX[i] < -1.5) {
-        barrierX[i] += 3; // Reset barrier position
-        score++; // Increase score when the barrier goes off screen
+        barrierX[i] += 3; // Reset the barrier position
+        double topHeight =
+            _random.nextDouble() * 0.6 + 0.2; // Top barrier height (0.2 to 0.8)
+        double bottomHeight =
+            1.0 - topHeight; // Bottom barrier height complements the top
+        barrierHeight[i] = [topHeight, bottomHeight]; // Assign new heights
       }
     }
   }
@@ -216,7 +232,7 @@ class _GameScreenState extends State<GameScreen>
             Expanded(
               flex: 3,
               child: Container(
-                color: Colors.blue,
+                color: const Color.fromARGB(255, 115, 224, 255),
                 child: Center(
                   child: Stack(
                     children: [
@@ -251,20 +267,20 @@ class _GameScreenState extends State<GameScreen>
                             ),
                           ),
                         ),
-                      
                     ],
                   ),
                 ),
               ),
             ),
             Expanded(
-              child: Container(
-                alignment: const Alignment(0, -0.5),
-                color: Colors.brown,
-                child: Text(
-                  gameHasStarted ? 'Score: $score' : '',
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 30),
+              child: CustomPaint(
+                painter: GrassPainter(),
+                child: Container(
+                  alignment: const Alignment(0, -0.5),
+                  child: Text(
+                    gameHasStarted ? 'Score: $score' : '',
+                    style: const TextStyle(color: Colors.white, fontSize: 30),
+                  ),
                 ),
               ),
             ),
@@ -272,5 +288,39 @@ class _GameScreenState extends State<GameScreen>
         ),
       ),
     );
+  }
+}
+
+class GrassPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.brown;
+
+    // Draw the base grass rectangle
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+
+    // Draw a single row of grass blades at the top
+    final grassBladePaint = Paint()..color = Colors.lightGreen;
+    const bladeWidth = 5.0;
+    const bladeHeight = 20.0;
+
+    // We will only draw one row of blades at the top
+    double verticalOffset = 0; // Position at the top
+
+    for (double i = 0; i < size.width; i += bladeWidth * 2) {
+      final path = Path();
+      path.moveTo(i, verticalOffset); // Start at the top (0)
+      path.lineTo(i + bladeWidth / 2,
+          verticalOffset - bladeHeight); // Tip of the blade (move upwards)
+      path.lineTo(i + bladeWidth,
+          verticalOffset); // Back to bottom (adjust the second line)
+      path.close();
+      canvas.drawPath(path, grassBladePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
   }
 }

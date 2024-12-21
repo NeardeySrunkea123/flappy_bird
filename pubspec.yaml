@@ -67,6 +67,7 @@ flutter:
     - lib/images/Bird-Flapping-down.png
     - lib/images/Bird-Flapping-up.png
     - lib/images/bg.png
+    - lib/images/game_bg.png
 
   #   - images/a_dot_ham.jpeg
 
